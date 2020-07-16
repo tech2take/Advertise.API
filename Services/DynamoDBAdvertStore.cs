@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 
 namespace Advertise.API.Services
 {
@@ -19,7 +20,7 @@ namespace Advertise.API.Services
         public async Task<string> Add(AdvertModel model)
         {
             var dbModel = _mapper.Map<AdvertDBModel>(model);
-            dbModel.Id = new Guid().ToString();
+            dbModel.Id = Guid.NewGuid().ToString();
             dbModel.CreateDateTime = DateTime.UtcNow;
             dbModel.Status = AdvertStatus.Pending;
 
@@ -32,6 +33,15 @@ namespace Advertise.API.Services
             }
 
             return dbModel.Id;
+        }
+
+        public async Task<bool> CheckHealthAsync()
+        {
+            using (var client = new AmazonDynamoDBClient())
+            {
+                var tableData = await client.DescribeTableAsync("Adverts");
+                return string.Compare(tableData.Table.TableStatus, "active", true) == 0;
+            }
         }
 
         public async Task Confirm(ConfirmAdvertModel model)
